@@ -8,6 +8,14 @@ interface TradeLogProps {
   onEditTrade: (tradeId: string) => void;
 }
 
+const DECIMAL_PRECISION = 6;
+
+const formatNumber = (value: number) => {
+  const factor = Math.pow(10, DECIMAL_PRECISION);
+  const truncated = Math.trunc(value * factor) / factor;
+  return truncated.toFixed(DECIMAL_PRECISION);
+};
+
 const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade }) => {
     
   const totals = useMemo(() => {
@@ -65,19 +73,19 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade 
                 <td className="py-2 px-2">{new Date(trade.dateTime).toLocaleString()}</td>
                 <td className="py-2 px-2 font-medium">{trade.pair}</td>
                 <td className={`py-2 px-2 font-semibold ${trade.direction === 'Long' ? 'text-green-500' : 'text-red-500'}`}>{trade.direction}</td>
-                <td className="py-2 px-2">{trade.entryPrice.toFixed(2)}</td>
-                <td className="py-2 px-2">{trade.exitPrice.toFixed(2)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.entryPrice)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.exitPrice)}</td>
                 <td className="py-2 px-2">{trade.closeDateTime ? new Date(trade.closeDateTime).toLocaleString() : '—'}</td>
-                <td className="py-2 px-2">{trade.positionSize.toFixed(4)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.positionSize)}</td>
                 <td className="py-2 px-2">{trade.leverage}x</td>
-                <td className="py-2 px-2">{trade.margin.toFixed(2)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.margin)}</td>
                 <td className="py-2 px-2">{trade.riskReward}</td>
-                <td className="py-2 px-2">{trade.riskAmount.toFixed(2)}</td>
-                <td className="py-2 px-2">{trade.fees.toFixed(2)}</td>
-                <td className={`py-2 px-2 font-bold ${pnlColor(trade.pnlNet)}`}>{trade.pnlNet.toFixed(2)}</td>
-                <td className={`py-2 px-2 ${pnlColor(trade.pnlAssetPercent)}`}>{trade.pnlAssetPercent.toFixed(2)}%</td>
-                <td className={`py-2 px-2 ${pnlColor(trade.pnlMarginPercent)}`}>{trade.pnlMarginPercent.toFixed(2)}%</td>
-                <td className="py-2 px-2">{trade.capitalEnd.toFixed(2)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.riskAmount)}</td>
+                <td className="py-2 px-2">{formatNumber(trade.fees)}</td>
+                <td className={`py-2 px-2 font-bold ${pnlColor(trade.pnlNet)}`}>{formatNumber(trade.pnlNet)}</td>
+                <td className={`py-2 px-2 ${pnlColor(trade.pnlAssetPercent)}`}>{formatNumber(trade.pnlAssetPercent)}%</td>
+                <td className={`py-2 px-2 ${pnlColor(trade.pnlMarginPercent)}`}>{formatNumber(trade.pnlMarginPercent)}%</td>
+                <td className="py-2 px-2">{formatNumber(trade.capitalEnd)}</td>
                 <td className="py-2 px-2">{trade.strategy}</td>
                 <td className="py-2 px-2 space-x-2 whitespace-nowrap">
                   <button
@@ -104,11 +112,11 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade 
           <tfoot>
             <tr className="font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700">
                 <td colSpan={8} className="py-2 px-2 text-right">Totals:</td>
-                <td className="py-2 px-2">{totals.margin.toFixed(2)}</td>
+                <td className="py-2 px-2">{formatNumber(totals.margin)}</td>
                 <td className="py-2 px-2"></td>
-                <td className="py-2 px-2">{totals.riskAmount.toFixed(2)}</td>
-                <td className="py-2 px-2">{totals.fees.toFixed(2)}</td>
-                <td className={`py-2 px-2 ${pnlColor(totals.pnlNet)}`}>{totals.pnlNet.toFixed(2)}</td>
+                <td className="py-2 px-2">{formatNumber(totals.riskAmount)}</td>
+                <td className="py-2 px-2">{formatNumber(totals.fees)}</td>
+                <td className={`py-2 px-2 ${pnlColor(totals.pnlNet)}`}>{formatNumber(totals.pnlNet)}</td>
                 <td colSpan={4} className="py-2 px-2"></td>
                 <td className="py-2 px-2"></td>
             </tr>

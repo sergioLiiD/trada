@@ -9,7 +9,9 @@ interface PerformanceDashboardProps {
 
 const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({ metrics, onOpenAnalytics }) => {
   const formatMetric = (value: number, suffix = '', decimals = 2) => {
-    if (!isFinite(value)) return 'N/A';
+    if (!isFinite(value)) {
+      return value > 0 ? `∞${suffix}` : 'N/A';
+    }
     return `${value.toFixed(decimals)}${suffix}`;
   };
 
