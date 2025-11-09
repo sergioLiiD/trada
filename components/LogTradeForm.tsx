@@ -7,6 +7,7 @@ interface LogTradeFormProps {
   initialValues?: Omit<Trade, 'id'>;
   submitLabel?: string;
   onCancel?: () => void;
+  title?: string;
 }
 
 const createDefaultTrade = (): Omit<Trade, 'id'> => {
@@ -31,7 +32,7 @@ const createDefaultTrade = (): Omit<Trade, 'id'> => {
 
 const DECIMAL_STEP = 0.000001;
 
-const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, submitLabel = 'Log Trade', onCancel }) => {
+const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, submitLabel = 'Log Trade', onCancel, title = 'Log a New Trade' }) => {
   const [trade, setTrade] = useState<Omit<Trade, 'id'>>(() => initialValues ?? createDefaultTrade());
   const [autoCalculated, setAutoCalculated] = useState({
     positionValue: 0,
@@ -120,7 +121,7 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
   };
 
   return (
-    <Card title="Log a New Trade">
+    <Card title={title}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

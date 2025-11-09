@@ -11,7 +11,6 @@ import { calculateTradePnl, calculateDashboardMetrics } from '../utils/calculati
 
 // Components
 import CapitalManagement from './CapitalManagement';
-import LogTradeForm from './LogTradeForm';
 import PerformanceDashboard from './PerformanceDashboard';
 import TradeLog from './TradeLog';
 import PersonalNotes from './PersonalNotes';
@@ -20,6 +19,7 @@ import PerformanceAnalyticsModal from './PerformanceAnalyticsModal';
 import PromptModal from './PromptModal';
 import EditTradeModal from './EditTradeModal';
 import OpenPositions from './OpenPositions';
+import LogTradeModal from './LogTradeModal';
 
 interface TradingJournalProps {
   user: JournalUser;
@@ -32,6 +32,7 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
   const [isAnalyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [isPromptModalOpen, setPromptModalOpen] = useState(false);
   const [tradeBeingEdited, setTradeBeingEdited] = useState<Trade | null>(null);
+  const [isLogTradeModalOpen, setLogTradeModalOpen] = useState(false);
   
   // Firestore data
   const { data: trades, addDocument: addTrade, deleteDocument: deleteTrade, updateDocument: updateTrade, loading: tradesLoading } = useFirestoreCollection<Trade>('trades', user.uid);
@@ -71,8 +72,8 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
     return calculateDashboardMetrics(capital, tradesWithPnl);
   }, [capital, tradesWithPnl]);
 
-  const handleAddTrade = (trade: Omit<Trade, 'id'>) => {
-    addTrade(trade);
+  const handleAddTrade = async (trade: Omit<Trade, 'id'>) => {
+    await addTrade(trade);
   };
 
   const handleSetCapital = (newCapital: Partial<Capital>) => {
@@ -120,9 +121,15 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
         <header className="bg-white dark:bg-gray-800/50 dark:backdrop-blur-sm border-b border-gray-200 dark:border-gray-700/50 shadow-md sticky top-0 z-40">
           <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-primary">TRADA</h1>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <button onClick={() => setPromptModalOpen(true)} className="text-sm font-medium text-primary hover:underline hidden md:block">
                   View Creation Prompt
+              </button>
+              <button
+                onClick={() => setLogTradeModalOpen(true)}
+                className="hidden md:inline-flex items-center bg-primary hover:brightness-95 text-gray-900 font-bold py-2 px-4 rounded-md transition duration-300 text-sm"
+              >
+                Log Trade
               </button>
               <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-2xl leading-none">
                 {theme === 'dark' ? '☀️' : '🌙'}
@@ -148,13 +155,21 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
                 note={note}
                 onNoteChange={handleNoteChange}
               />
-              <LogTradeForm onSubmit={handleAddTrade} />
+              <button
+                onClick={() => setLogTradeModalOpen(true)}
+                className="w-full bg-primary hover:brightness-95 text-gray-900 font-bold py-3 px-4 rounded-md transition duration-300 text-sm"
+              >
+                Log a New Trade
+              </button>
             </div>
 
             {/* Right Column */}
             <div className="lg:col-span-2 space-y-6 mt-6 lg:mt-0">
               <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
               <OpenPositions trades={openTrades} onEditTrade={handleStartEditTrade} onDeleteTrade={handleDeleteTrade} />
+            </div>
+
+            <div className="lg:col-span-3 mt-6 space-y-6">
               <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} onEditTrade={handleStartEditTrade} />
             </div>
           </div>
@@ -174,6 +189,13 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
           trade={tradeBeingEdited}
           onClose={handleCloseEdit}
           onSubmit={handleUpdateTrade}
+        />
+      )}
+
+      {isLogTradeModalOpen && (
+        <LogTradeModal
+          onClose={() => setLogTradeModalOpen(false)}
+          onSubmit={handleAddTrade}
         />
       )}
     </>

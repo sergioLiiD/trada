@@ -16,6 +16,15 @@ const COLOR_MAP: { [key: string]: { bg: string, text: string } } = {
   yellow: { bg: 'bg-yellow-200 dark:bg-yellow-800/50', text: 'text-yellow-800 dark:text-yellow-200' },
 };
 
+const COLOR_SWATCH_MAP: { [key: string]: string } = {
+  default: 'bg-white',
+  gray: 'bg-gray-400',
+  red: 'bg-red-400',
+  green: 'bg-green-400',
+  blue: 'bg-blue-400',
+  yellow: 'bg-yellow-400',
+};
+
 
 const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => {
   const [content, setContent] = useState(note.content || '');
@@ -77,7 +86,12 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
             <button onClick={() => handleFormat('strikeThrough')} className="p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600"><s>S</s></button>
             <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
             {COLORS.map(color => (
-                <button key={color} onClick={() => handleColorChange(color)} className={`w-5 h-5 rounded-full border-2 ${note.color === color ? 'border-primary' : 'border-transparent'} ${COLOR_MAP[color].bg.split(' ')[0]}`}></button>
+                <button
+                  key={color}
+                  onClick={() => handleColorChange(color)}
+                  aria-label={`Set note color to ${color}`}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform duration-200 ${note.color === color ? 'border-primary scale-110' : 'border-transparent'} ${COLOR_SWATCH_MAP[color]}`}
+                ></button>
             ))}
         </div>
       </div>
