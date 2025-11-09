@@ -9,6 +9,7 @@ import {
   writeBatch,
   getDocs,
   setDoc,
+  deleteDoc,
 } from 'firebase/firestore';
 
 // Hook for a collection (e.g., trades)
@@ -70,7 +71,18 @@ export function useFirestoreCollection<T extends {id: string}>(collectionName: s
     }
   }, [collectionRef, collectionName]);
 
-  return { data, loading, error, addDocument, clearCollection };
+  const deleteDocument = useCallback(async (id: string) => {
+    if (!collectionRef) return;
+    try {
+      const docRef = doc(collectionRef, id);
+      await deleteDoc(docRef);
+    } catch (err: any) {
+      setError(err);
+      console.error(`Firestore error deleting from ${collectionName}:`, err);
+    }
+  }, [collectionRef, collectionName]);
+
+  return { data, loading, error, addDocument, clearCollection, deleteDocument };
 }
 
 // Hook for a single document (e.g., capital, notes) stored in its own subcollection.

@@ -4,10 +4,10 @@ import { TradeWithPnl } from '../types';
 
 interface TradeLogProps {
   trades: TradeWithPnl[];
-  onClearAll: () => void;
+  onDeleteTrade: (tradeId: string) => void;
 }
 
-const TradeLog: React.FC<TradeLogProps> = ({ trades, onClearAll }) => {
+const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade }) => {
     
   const totals = useMemo(() => {
     return trades.reduce((acc, trade) => {
@@ -20,17 +20,16 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onClearAll }) => {
   }, [trades]);
 
   const pnlColor = (pnl: number) => pnl >= 0 ? 'text-green-500' : 'text-red-500';
+  const handleDelete = (tradeId: string) => {
+    if (window.confirm('Delete this trade? This action cannot be undone.')) {
+      onDeleteTrade(tradeId);
+    }
+  };
 
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-primary">Trade Log</h2>
-        <button
-          onClick={onClearAll}
-          className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded-md transition duration-300"
-        >
-          Clear All Trades
-        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
@@ -52,6 +51,7 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onClearAll }) => {
               <th scope="col" className="py-3 px-2">P/L Margin %</th>
               <th scope="col" className="py-3 px-2">Capital End</th>
               <th scope="col" className="py-3 px-2">Strategy</th>
+              <th scope="col" className="py-3 px-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -73,11 +73,19 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onClearAll }) => {
                 <td className={`py-2 px-2 ${pnlColor(trade.pnlMarginPercent)}`}>{trade.pnlMarginPercent.toFixed(2)}%</td>
                 <td className="py-2 px-2">{trade.capitalEnd.toFixed(2)}</td>
                 <td className="py-2 px-2">{trade.strategy}</td>
+                <td className="py-2 px-2">
+                  <button
+                    onClick={() => handleDelete(trade.id)}
+                    className="text-red-600 hover:text-red-500 font-semibold text-xs"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
              {trades.length === 0 && (
                 <tr>
-                    <td colSpan={16} className="text-center py-4">No trades logged yet.</td>
+                    <td colSpan={17} className="text-center py-4">No trades logged yet.</td>
                 </tr>
             )}
           </tbody>
@@ -90,6 +98,7 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onClearAll }) => {
                 <td className="py-2 px-2">{totals.fees.toFixed(2)}</td>
                 <td className={`py-2 px-2 ${pnlColor(totals.pnlNet)}`}>{totals.pnlNet.toFixed(2)}</td>
                 <td colSpan={4} className="py-2 px-2"></td>
+                <td className="py-2 px-2"></td>
             </tr>
           </tfoot>
         </table>

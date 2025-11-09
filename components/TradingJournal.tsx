@@ -31,7 +31,7 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
   const [isPromptModalOpen, setPromptModalOpen] = useState(false);
   
   // Firestore data
-  const { data: trades, addDocument: addTrade, clearCollection: clearTrades, loading: tradesLoading } = useFirestoreCollection<Trade>('trades', user.uid);
+  const { data: trades, addDocument: addTrade, deleteDocument: deleteTrade, loading: tradesLoading } = useFirestoreCollection<Trade>('trades', user.uid);
   const { data: capital, updateDocument: updateCapital, loading: capitalLoading } = useFirestoreDocument<Capital>('capital', user.uid, { initial: 1000, deposits: 0 });
   const { data: note, updateDocument: updateNote, loading: noteLoading } = useFirestoreDocument<Note>('note', user.uid, { content: 'Start typing your notes here...', color: 'default' });
 
@@ -57,12 +57,6 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
     addTrade(trade);
   };
 
-  const handleClearAllTrades = () => {
-    if (window.confirm('Are you sure you want to delete all trades? This action cannot be undone.')) {
-        clearTrades();
-    }
-  };
-
   const handleSetCapital = (newCapital: Partial<Capital>) => {
     updateCapital(newCapital);
   };
@@ -73,6 +67,10 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
   
   const handleNoteChange = (newNote: Note) => {
     updateNote(newNote);
+  };
+
+  const handleDeleteTrade = (tradeId: string) => {
+    deleteTrade(tradeId);
   };
 
   if (loading) {
@@ -123,7 +121,7 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
             {/* Right Column */}
             <div className="lg:col-span-2 space-y-6 mt-6 lg:mt-0">
               <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
-              <TradeLog trades={tradesWithPnl} onClearAll={handleClearAllTrades} />
+              <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} />
             </div>
           </div>
         </main>
