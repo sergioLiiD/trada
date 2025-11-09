@@ -1,0 +1,5 @@
+{
+  "name": "Trada",
+  "description": "A comprehensive web application to log, track, and analyze your crypto trades. It features capital management, detailed trade logging with auto-calculations, performance analytics with charts, and personal notes.",
+  "requestFramePermissions": []
+}
