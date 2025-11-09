@@ -29,6 +29,8 @@ const createDefaultTrade = (): Omit<Trade, 'id'> => {
   };
 };
 
+const DECIMAL_STEP = 0.000001;
+
 const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, submitLabel = 'Log Trade', onCancel }) => {
   const [trade, setTrade] = useState<Omit<Trade, 'id'>>(() => initialValues ?? createDefaultTrade());
   const [autoCalculated, setAutoCalculated] = useState({
@@ -160,14 +162,23 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="entryPrice" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Entry Price</label>
-            <input type="number" step="any" name="entryPrice" id="entryPrice" value={trade.entryPrice} onChange={handleChange} required className="input-field" />
+            <input
+              type="number"
+              step={DECIMAL_STEP}
+              name="entryPrice"
+              id="entryPrice"
+              value={trade.entryPrice}
+              onChange={handleChange}
+              required
+              className="input-field"
+            />
           </div>
           {trade.status === 'closed' && (
             <div>
               <label htmlFor="exitPrice" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Exit Price</label>
               <input
                 type="number"
-                step="any"
+                step={DECIMAL_STEP}
                 name="exitPrice"
                 id="exitPrice"
                 value={trade.exitPrice ?? ''}
@@ -182,7 +193,16 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label htmlFor="margin" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Margin ($)</label>
-                <input type="number" step="any" name="margin" id="margin" value={trade.margin} onChange={handleChange} required className="input-field" />
+                <input
+                  type="number"
+                  step={DECIMAL_STEP}
+                  name="margin"
+                  id="margin"
+                  value={trade.margin}
+                  onChange={handleChange}
+                  required
+                  className="input-field"
+                />
             </div>
             <div>
                 <label htmlFor="leverage" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Leverage</label>
@@ -202,7 +222,7 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
                  <label htmlFor="fees" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Fees ($)</label>
                  <input
                    type="number"
-                   step="any"
+                   step={DECIMAL_STEP}
                    name="fees"
                    id="fees"
                    value={trade.fees ?? ''}
