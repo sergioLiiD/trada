@@ -5,9 +5,10 @@ import { TradeWithPnl } from '../types';
 interface TradeLogProps {
   trades: TradeWithPnl[];
   onDeleteTrade: (tradeId: string) => void;
+  onEditTrade: (tradeId: string) => void;
 }
 
-const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade }) => {
+const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade }) => {
     
   const totals = useMemo(() => {
     return trades.reduce((acc, trade) => {
@@ -24,6 +25,9 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade }) => {
     if (window.confirm('Delete this trade? This action cannot be undone.')) {
       onDeleteTrade(tradeId);
     }
+  };
+  const handleEdit = (tradeId: string) => {
+    onEditTrade(tradeId);
   };
 
   return (
@@ -73,7 +77,13 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade }) => {
                 <td className={`py-2 px-2 ${pnlColor(trade.pnlMarginPercent)}`}>{trade.pnlMarginPercent.toFixed(2)}%</td>
                 <td className="py-2 px-2">{trade.capitalEnd.toFixed(2)}</td>
                 <td className="py-2 px-2">{trade.strategy}</td>
-                <td className="py-2 px-2">
+                <td className="py-2 px-2 space-x-2 whitespace-nowrap">
+                  <button
+                    onClick={() => handleEdit(trade.id)}
+                    className="text-primary hover:brightness-90 font-semibold text-xs"
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(trade.id)}
                     className="text-red-600 hover:text-red-500 font-semibold text-xs"

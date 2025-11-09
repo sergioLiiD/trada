@@ -18,6 +18,7 @@ import PersonalNotes from './PersonalNotes';
 import BestPractices from './BestPractices';
 import PerformanceAnalyticsModal from './PerformanceAnalyticsModal';
 import PromptModal from './PromptModal';
+import EditTradeModal from './EditTradeModal';
 
 interface TradingJournalProps {
   user: JournalUser;
@@ -29,9 +30,10 @@ interface TradingJournalProps {
 const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, toggleTheme }) => {
   const [isAnalyticsModalOpen, setAnalyticsModalOpen] = useState(false);
   const [isPromptModalOpen, setPromptModalOpen] = useState(false);
+  const [tradeBeingEdited, setTradeBeingEdited] = useState<Trade | null>(null);
   
   // Firestore data
-  const { data: trades, addDocument: addTrade, deleteDocument: deleteTrade, loading: tradesLoading } = useFirestoreCollection<Trade>('trades', user.uid);
+  const { data: trades, addDocument: addTrade, deleteDocument: deleteTrade, updateDocument: updateTrade, loading: tradesLoading } = useFirestoreCollection<Trade>('trades', user.uid);
   const { data: capital, updateDocument: updateCapital, loading: capitalLoading } = useFirestoreDocument<Capital>('capital', user.uid, { initial: 1000, deposits: 0 });
   const { data: note, updateDocument: updateNote, loading: noteLoading } = useFirestoreDocument<Note>('note', user.uid, { content: 'Start typing your notes here...', color: 'default' });
 
@@ -71,6 +73,21 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
 
   const handleDeleteTrade = (tradeId: string) => {
     deleteTrade(tradeId);
+  };
+
+  const handleStartEditTrade = (tradeId: string) => {
+    const tradeToEdit = trades.find((trade) => trade.id === tradeId);
+    if (tradeToEdit) {
+      setTradeBeingEdited(tradeToEdit);
+    }
+  };
+
+  const handleUpdateTrade = (tradeId: string, updatedTrade: Omit<Trade, 'id'>) => {
+    return updateTrade(tradeId, updatedTrade);
+  };
+
+  const handleCloseEdit = () => {
+    setTradeBeingEdited(null);
   };
 
   if (loading) {
@@ -115,13 +132,13 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
                 note={note}
                 onNoteChange={handleNoteChange}
               />
-              <LogTradeForm onAddTrade={handleAddTrade} />
+              <LogTradeForm onSubmit={handleAddTrade} />
             </div>
 
             {/* Right Column */}
             <div className="lg:col-span-2 space-y-6 mt-6 lg:mt-0">
               <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
-              <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} />
+              <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} onEditTrade={handleStartEditTrade} />
             </div>
           </div>
         </main>
@@ -134,6 +151,14 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
       />}
       
       {isPromptModalOpen && <PromptModal onClose={() => setPromptModalOpen(false)} />}
+
+      {tradeBeingEdited && (
+        <EditTradeModal
+          trade={tradeBeingEdited}
+          onClose={handleCloseEdit}
+          onSubmit={handleUpdateTrade}
+        />
+      )}
     </>
   );
 };

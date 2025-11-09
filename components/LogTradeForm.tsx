@@ -3,10 +3,13 @@ import Card from './shared/Card';
 import { Trade } from '../types';
 
 interface LogTradeFormProps {
-  onAddTrade: (trade: Omit<Trade, 'id'>) => void;
+  onSubmit: (trade: Omit<Trade, 'id'>) => void | Promise<void>;
+  initialValues?: Omit<Trade, 'id'>;
+  submitLabel?: string;
+  onCancel?: () => void;
 }
 
-const INITIAL_STATE: Omit<Trade, 'id'> = {
+const DEFAULT_STATE: Omit<Trade, 'id'> = {
   dateTime: new Date().toISOString().slice(0, 16),
   pair: '',
   strategy: '',
@@ -20,13 +23,17 @@ const INITIAL_STATE: Omit<Trade, 'id'> = {
   fees: 0,
 };
 
-const LogTradeForm: React.FC<LogTradeFormProps> = ({ onAddTrade }) => {
-  const [trade, setTrade] = useState(INITIAL_STATE);
+const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, submitLabel = 'Log Trade', onCancel }) => {
+  const [trade, setTrade] = useState<Omit<Trade, 'id'>>(initialValues || DEFAULT_STATE);
   const [autoCalculated, setAutoCalculated] = useState({
     positionValue: 0,
     positionSize: 0,
     riskAmount: 0,
   });
+
+  useEffect(() => {
+    setTrade(initialValues || DEFAULT_STATE);
+  }, [initialValues]);
 
   useEffect(() => {
     const positionValue = trade.margin * trade.leverage;
@@ -41,10 +48,12 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onAddTrade }) => {
     setTrade(prev => ({ ...prev, [name]: isNumber ? parseFloat(value) || 0 : value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAddTrade(trade);
-    setTrade(INITIAL_STATE);
+    await onSubmit(trade);
+    if (!initialValues) {
+      setTrade(DEFAULT_STATE);
+    }
   };
 
   return (
@@ -122,9 +131,20 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onAddTrade }) => {
             <div className="flex justify-between"><span>Risk Amount ($):</span> <span>{autoCalculated.riskAmount.toFixed(2)}</span></div>
         </div>
 
-        <button type="submit" className="w-full bg-primary hover:brightness-95 text-gray-900 font-bold py-2 px-4 rounded-md transition duration-300">
-          Log Trade
-        </button>
+        <div className="flex space-x-2">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300"
+            >
+              Cancel
+            </button>
+          )}
+          <button type="submit" className="flex-1 bg-primary hover:brightness-95 text-gray-900 font-bold py-2 px-4 rounded-md transition duration-300">
+            {submitLabel}
+          </button>
+        </div>
       </form>
       {/* Fix: Removed the non-standard `jsx` prop from the <style> tag. */}
       <style>{`

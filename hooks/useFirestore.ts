@@ -82,7 +82,18 @@ export function useFirestoreCollection<T extends {id: string}>(collectionName: s
     }
   }, [collectionRef, collectionName]);
 
-  return { data, loading, error, addDocument, clearCollection, deleteDocument };
+  const updateDocument = useCallback(async (id: string, updatedData: Partial<T>) => {
+    if (!collectionRef) return;
+    try {
+      const docRef = doc(collectionRef, id);
+      await setDoc(docRef, updatedData, { merge: true });
+    } catch (err: any) {
+      setError(err);
+      console.error(`Firestore error updating ${collectionName}:`, err);
+    }
+  }, [collectionRef, collectionName]);
+
+  return { data, loading, error, addDocument, clearCollection, deleteDocument, updateDocument };
 }
 
 // Hook for a single document (e.g., capital, notes) stored in its own subcollection.
