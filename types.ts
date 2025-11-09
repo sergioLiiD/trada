@@ -3,6 +3,8 @@ export interface JournalUser {
   email: string | null;
 }
 
+export type TradeStatus = 'open' | 'closed';
+
 export interface Trade {
   id: string;
   dateTime: string;
@@ -11,14 +13,20 @@ export interface Trade {
   direction: 'Long' | 'Short';
   riskReward: string;
   entryPrice: number;
-  exitPrice: number;
+  exitPrice?: number | null;
   margin: number;
   leverage: number;
   riskPercent: number;
-  fees: number;
+  fees?: number | null;
+  status: TradeStatus;
+  closeDateTime?: string | null;
+  notes?: string;
 }
 
 export interface TradeWithPnl extends Trade {
+  status: 'closed';
+  exitPrice: number;
+  fees: number;
   pnlNet: number;
   pnlAssetPercent: number;
   pnlMarginPercent: number;

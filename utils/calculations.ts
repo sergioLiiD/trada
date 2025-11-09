@@ -2,12 +2,19 @@
 import { Trade, Capital, TradeWithPnl } from '../types';
 
 export const calculateTradePnl = (trade: Trade) => {
+  if (trade.status !== 'closed') {
+    throw new Error('Cannot calculate PnL for an open trade');
+  }
+
+  const exitPrice = trade.exitPrice ?? trade.entryPrice;
+  const fees = trade.fees ?? 0;
+
   const positionValue = trade.margin * trade.leverage;
   const positionSize = positionValue / trade.entryPrice;
   const directionMultiplier = trade.direction === 'Long' ? 1 : -1;
 
-  const pnlNet = (trade.exitPrice - trade.entryPrice) * positionSize * directionMultiplier - trade.fees;
-  const pnlAssetPercent = ((trade.exitPrice - trade.entryPrice) / trade.entryPrice) * directionMultiplier * 100;
+  const pnlNet = (exitPrice - trade.entryPrice) * positionSize * directionMultiplier - fees;
+  const pnlAssetPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * directionMultiplier * 100;
   const pnlMarginPercent = (pnlNet / trade.margin) * 100;
   const riskAmount = positionValue * (trade.riskPercent / 100);
 

@@ -19,6 +19,7 @@ import BestPractices from './BestPractices';
 import PerformanceAnalyticsModal from './PerformanceAnalyticsModal';
 import PromptModal from './PromptModal';
 import EditTradeModal from './EditTradeModal';
+import OpenPositions from './OpenPositions';
 
 interface TradingJournalProps {
   user: JournalUser;
@@ -39,17 +40,32 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
 
   const loading = tradesLoading || capitalLoading || noteLoading;
 
+  const normalizedTrades = useMemo(() => {
+    return trades.map(trade => ({
+      ...trade,
+      status: (trade.status ?? 'closed') as Trade['status'],
+    }));
+  }, [trades]);
+
+  const openTrades = useMemo(() => {
+    return normalizedTrades.filter(trade => trade.status === 'open');
+  }, [normalizedTrades]);
+
+  const closedTrades = useMemo(() => {
+    return normalizedTrades.filter(trade => trade.status === 'closed');
+  }, [normalizedTrades]);
+
   const tradesWithPnl: TradeWithPnl[] = useMemo(() => {
     let runningCapital = capital.initial + capital.deposits;
-    return trades
+    return closedTrades
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
       .map(trade => {
         const pnlData = calculateTradePnl(trade);
-        const tradeWithPnl = { ...trade, ...pnlData };
+        const tradeWithPnl: TradeWithPnl = { ...trade, ...pnlData, status: 'closed', exitPrice: trade.exitPrice ?? trade.entryPrice, fees: trade.fees ?? 0 };
         runningCapital += tradeWithPnl.pnlNet;
         return { ...tradeWithPnl, capitalEnd: runningCapital };
       });
-  }, [trades, capital]);
+  }, [closedTrades, capital]);
 
   const dashboardMetrics: DashboardMetrics = useMemo(() => {
     return calculateDashboardMetrics(capital, tradesWithPnl);
@@ -138,6 +154,7 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
             {/* Right Column */}
             <div className="lg:col-span-2 space-y-6 mt-6 lg:mt-0">
               <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
+              <OpenPositions trades={openTrades} onEditTrade={handleStartEditTrade} onDeleteTrade={handleDeleteTrade} />
               <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} onEditTrade={handleStartEditTrade} />
             </div>
           </div>

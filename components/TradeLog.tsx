@@ -44,6 +44,7 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade 
               <th scope="col" className="py-3 px-2">Direction</th>
               <th scope="col" className="py-3 px-2">Entry</th>
               <th scope="col" className="py-3 px-2">Exit</th>
+              <th scope="col" className="py-3 px-2">Closed</th>
               <th scope="col" className="py-3 px-2">Pos. Size</th>
               <th scope="col" className="py-3 px-2">Leverage</th>
               <th scope="col" className="py-3 px-2">Margin ($)</th>
@@ -66,6 +67,7 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade 
                 <td className={`py-2 px-2 font-semibold ${trade.direction === 'Long' ? 'text-green-500' : 'text-red-500'}`}>{trade.direction}</td>
                 <td className="py-2 px-2">{trade.entryPrice.toFixed(2)}</td>
                 <td className="py-2 px-2">{trade.exitPrice.toFixed(2)}</td>
+                <td className="py-2 px-2">{trade.closeDateTime ? new Date(trade.closeDateTime).toLocaleString() : '—'}</td>
                 <td className="py-2 px-2">{trade.positionSize.toFixed(4)}</td>
                 <td className="py-2 px-2">{trade.leverage}x</td>
                 <td className="py-2 px-2">{trade.margin.toFixed(2)}</td>
@@ -95,13 +97,13 @@ const TradeLog: React.FC<TradeLogProps> = ({ trades, onDeleteTrade, onEditTrade 
             ))}
              {trades.length === 0 && (
                 <tr>
-                    <td colSpan={17} className="text-center py-4">No trades logged yet.</td>
+                    <td colSpan={18} className="text-center py-4">No trades logged yet.</td>
                 </tr>
             )}
           </tbody>
           <tfoot>
             <tr className="font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700">
-                <td colSpan={7} className="py-2 px-2 text-right">Totals:</td>
+                <td colSpan={8} className="py-2 px-2 text-right">Totals:</td>
                 <td className="py-2 px-2">{totals.margin.toFixed(2)}</td>
                 <td className="py-2 px-2"></td>
                 <td className="py-2 px-2">{totals.riskAmount.toFixed(2)}</td>

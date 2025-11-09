@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Card from './shared/Card';
-import { Trade } from '../types';
+import { Trade, TradeStatus } from '../types';
 
 interface LogTradeFormProps {
   onSubmit: (trade: Omit<Trade, 'id'>) => void | Promise<void>;
@@ -9,22 +9,28 @@ interface LogTradeFormProps {
   onCancel?: () => void;
 }
 
-const DEFAULT_STATE: Omit<Trade, 'id'> = {
-  dateTime: new Date().toISOString().slice(0, 16),
-  pair: '',
-  strategy: '',
-  direction: 'Long',
-  riskReward: '2:1',
-  entryPrice: 0,
-  exitPrice: 0,
-  margin: 0,
-  leverage: 1,
-  riskPercent: 1,
-  fees: 0,
+const createDefaultTrade = (): Omit<Trade, 'id'> => {
+  const now = new Date().toISOString().slice(0, 16);
+  return {
+    dateTime: now,
+    pair: '',
+    strategy: '',
+    direction: 'Long',
+    riskReward: '2:1',
+    entryPrice: 0,
+    exitPrice: 0,
+    margin: 0,
+    leverage: 1,
+    riskPercent: 1,
+    fees: 0,
+    status: 'closed',
+    closeDateTime: now,
+    notes: ''
+  };
 };
 
 const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, submitLabel = 'Log Trade', onCancel }) => {
-  const [trade, setTrade] = useState<Omit<Trade, 'id'>>(initialValues || DEFAULT_STATE);
+  const [trade, setTrade] = useState<Omit<Trade, 'id'>>(() => initialValues ?? createDefaultTrade());
   const [autoCalculated, setAutoCalculated] = useState({
     positionValue: 0,
     positionSize: 0,
@@ -32,7 +38,23 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
   });
 
   useEffect(() => {
-    setTrade(initialValues || DEFAULT_STATE);
+    if (initialValues) {
+      setTrade({
+        ...createDefaultTrade(),
+        ...initialValues,
+        exitPrice: initialValues.status === 'closed'
+          ? initialValues.exitPrice ?? initialValues.entryPrice
+          : null,
+        fees: initialValues.status === 'closed'
+          ? initialValues.fees ?? 0
+          : null,
+        closeDateTime: initialValues.status === 'closed'
+          ? initialValues.closeDateTime ?? initialValues.dateTime
+          : null,
+      });
+    } else {
+      setTrade(createDefaultTrade());
+    }
   }, [initialValues]);
 
   useEffect(() => {
@@ -42,17 +64,56 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
     setAutoCalculated({ positionValue, positionSize, riskAmount });
   }, [trade.margin, trade.leverage, trade.entryPrice, trade.riskPercent]);
 
+  const handleStatusChange = (status: TradeStatus) => {
+    setTrade(prev => ({
+      ...prev,
+      status,
+      exitPrice: status === 'closed'
+        ? (prev.exitPrice ?? prev.entryPrice)
+        : null,
+      fees: status === 'closed'
+        ? (prev.fees ?? 0)
+        : null,
+      closeDateTime: status === 'closed'
+        ? (prev.closeDateTime ?? new Date().toISOString().slice(0, 16))
+        : null,
+    }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const isNumber = ['entryPrice', 'exitPrice', 'margin', 'leverage', 'riskPercent', 'fees'].includes(name);
-    setTrade(prev => ({ ...prev, [name]: isNumber ? parseFloat(value) || 0 : value }));
+    if (name === 'status') {
+      handleStatusChange(value as TradeStatus);
+      return;
+    }
+
+    const numericFields = ['entryPrice', 'exitPrice', 'margin', 'leverage', 'riskPercent', 'fees'];
+    const isNumber = numericFields.includes(name);
+    setTrade(prev => ({
+      ...prev,
+      [name]: isNumber ? (isNaN(parseFloat(value)) ? 0 : parseFloat(value)) : value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(trade);
+    const payload: Omit<Trade, 'id'> = {
+      ...trade,
+      exitPrice: trade.status === 'closed'
+        ? (trade.exitPrice ?? trade.entryPrice)
+        : null,
+      fees: trade.status === 'closed'
+        ? (trade.fees ?? 0)
+        : null,
+      closeDateTime: trade.status === 'closed'
+        ? (trade.closeDateTime ?? new Date().toISOString().slice(0, 16))
+        : null,
+    };
+
+    await onSubmit(payload);
+
     if (!initialValues) {
-      setTrade(DEFAULT_STATE);
+      setTrade(createDefaultTrade());
     }
   };
 
@@ -60,6 +121,13 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
     <Card title="Log a New Trade">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Status</label>
+            <select name="status" id="status" value={trade.status} onChange={handleChange} className="input-field">
+              <option value="closed">Closed</option>
+              <option value="open">Open</option>
+            </select>
+          </div>
           <div>
             <label htmlFor="dateTime" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Date & Time</label>
             <input type="datetime-local" name="dateTime" id="dateTime" value={trade.dateTime} onChange={handleChange} required className="input-field" />
@@ -94,10 +162,21 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
             <label htmlFor="entryPrice" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Entry Price</label>
             <input type="number" step="any" name="entryPrice" id="entryPrice" value={trade.entryPrice} onChange={handleChange} required className="input-field" />
           </div>
-          <div>
-            <label htmlFor="exitPrice" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Exit Price</label>
-            <input type="number" step="any" name="exitPrice" id="exitPrice" value={trade.exitPrice} onChange={handleChange} required className="input-field" />
-          </div>
+          {trade.status === 'closed' && (
+            <div>
+              <label htmlFor="exitPrice" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Exit Price</label>
+              <input
+                type="number"
+                step="any"
+                name="exitPrice"
+                id="exitPrice"
+                value={trade.exitPrice ?? ''}
+                onChange={handleChange}
+                required
+                className="input-field"
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,16 +192,71 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
             </div>
         </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label htmlFor="riskPercent" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Risk (%)</label>
-                <input type="number" step="any" name="riskPercent" id="riskPercent" value={trade.riskPercent} onChange={handleChange} required className="input-field" />
-            </div>
-            <div>
-                <label htmlFor="fees" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Fees ($)</label>
-                <input type="number" step="any" name="fees" id="fees" value={trade.fees} onChange={handleChange} required className="input-field" />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div>
+               <label htmlFor="riskPercent" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Risk (%)</label>
+               <input type="number" step="any" name="riskPercent" id="riskPercent" value={trade.riskPercent} onChange={handleChange} required className="input-field" />
+           </div>
+           {trade.status === 'closed' && (
+             <div>
+                 <label htmlFor="fees" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Fees ($)</label>
+                 <input
+                   type="number"
+                   step="any"
+                   name="fees"
+                   id="fees"
+                   value={trade.fees ?? ''}
+                   onChange={handleChange}
+                   required
+                   className="input-field"
+                 />
+             </div>
+           )}
         </div>
+
+        {trade.status === 'closed' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="closeDateTime" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Close Date & Time</label>
+              <input
+                type="datetime-local"
+                name="closeDateTime"
+                id="closeDateTime"
+                value={trade.closeDateTime ?? ''}
+                onChange={handleChange}
+                required
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notes</label>
+              <input
+                type="text"
+                name="notes"
+                id="notes"
+                value={trade.notes ?? ''}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Optional notes"
+              />
+            </div>
+          </div>
+        )}
+
+        {trade.status === 'open' && (
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Notes</label>
+            <input
+              type="text"
+              name="notes"
+              id="notes"
+              value={trade.notes ?? ''}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Optional notes"
+            />
+          </div>
+        )}
 
         <div className="bg-gray-100 dark:bg-gray-900/50 p-4 rounded-lg space-y-2 text-sm">
             <h3 className="font-bold text-gray-700 dark:text-gray-300">Auto-Calculated Values</h3>
