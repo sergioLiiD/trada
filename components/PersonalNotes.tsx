@@ -28,13 +28,10 @@ const COLOR_SWATCH_MAP: { [key: string]: string } = {
 
 const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => {
   const [content, setContent] = useState(note.content || '');
+  const [selectedColorKey, setSelectedColorKey] = useState<string>(note.color || 'default');
   const [isExpanded, setIsExpanded] = useState(false);
   const [showToggle, setShowToggle] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setContent(note.content || '');
-  }, [note.content]);
 
   const checkHeight = useCallback(() => {
     if (contentRef.current) {
@@ -42,6 +39,19 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
         setShowToggle(contentRef.current.scrollHeight > 72);
     }
   }, []);
+
+  useEffect(() => {
+    const externalContent = note.content || '';
+    setContent(externalContent);
+    if (contentRef.current && contentRef.current.innerHTML !== externalContent) {
+      contentRef.current.innerHTML = externalContent;
+    }
+    setTimeout(checkHeight, 0);
+  }, [note.content, checkHeight]);
+
+  useEffect(() => {
+    setSelectedColorKey(note.color || 'default');
+  }, [note.color]);
 
   useEffect(() => {
     checkHeight();
@@ -56,6 +66,7 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     const newContent = e.currentTarget.innerHTML;
     setContent(newContent);
+    setTimeout(checkHeight, 0);
   };
   
   const handleBlur = () => {
@@ -64,15 +75,16 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
     }
   }
 
-  const handleColorChange = (color: string) => {
-    onNoteChange({ ...note, color });
+  const handleColorChange = (colorKey: string) => {
+    setSelectedColorKey(colorKey);
+    onNoteChange({ ...note, color: colorKey });
   };
 
   const handleFormat = (command: string) => {
     document.execCommand(command, false);
   };
   
-  const selectedColor = COLOR_MAP[note.color] || COLOR_MAP.default;
+  const selectedColor = COLOR_MAP[selectedColorKey] || COLOR_MAP.default;
 
   return (
     <div className={`rounded-xl shadow-lg p-6 transition-colors duration-300 border border-gray-200 dark:border-gray-700/50 ${selectedColor.bg}`}>
@@ -85,12 +97,12 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
             {/* Fix: Property 'strike' does not exist on type 'JSX.IntrinsicElements'. The <strike> tag is obsolete and was replaced with <s>. */}
             <button onClick={() => handleFormat('strikeThrough')} className="p-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600"><s>S</s></button>
             <div className="w-px h-5 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-            {COLORS.map(color => (
+            {COLORS.map((colorOption) => (
                 <button
-                  key={color}
-                  onClick={() => handleColorChange(color)}
-                  aria-label={`Set note color to ${color}`}
-                  className={`w-5 h-5 rounded-full border-2 transition-transform duration-200 ${note.color === color ? 'border-primary scale-110' : 'border-transparent'} ${COLOR_SWATCH_MAP[color]}`}
+                  key={colorOption}
+                  onClick={() => handleColorChange(colorOption)}
+                  aria-label={`Set note color to ${colorOption}`}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform duration-200 ${selectedColorKey === colorOption ? 'border-primary scale-110' : 'border-transparent'} ${COLOR_SWATCH_MAP[colorOption]}`}
                 ></button>
             ))}
         </div>
@@ -100,7 +112,7 @@ const PersonalNotes: React.FC<PersonalNotesProps> = ({ note, onNoteChange }) => 
         contentEditable
         onInput={handleInput}
         onBlur={handleBlur}
-        dangerouslySetInnerHTML={{ __html: content }}
+        suppressContentEditableWarning
         className={`prose dark:prose-invert max-w-none focus:outline-none transition-all duration-300 ${selectedColor.text} ${isExpanded ? 'max-h-none' : 'max-h-18 overflow-hidden'}`}
         style={{maxHeight: isExpanded ? 'none' : '72px'}}
       />

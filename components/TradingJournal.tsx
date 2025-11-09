@@ -141,37 +141,30 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
           </div>
         </header>
 
-        <main className="container mx-auto p-4 lg:p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-6">
-            {/* Left Column */}
-            <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24 self-start">
-              <CapitalManagement 
-                capital={capital} 
-                setCapital={handleSetCapital}
-                onAddDeposit={handleAddDeposit}
-              />
-              <BestPractices />
-              <PersonalNotes 
-                note={note}
-                onNoteChange={handleNoteChange}
-              />
-              <button
-                onClick={() => setLogTradeModalOpen(true)}
-                className="w-full bg-primary hover:brightness-95 text-gray-900 font-bold py-3 px-4 rounded-md transition duration-300 text-sm"
-              >
-                Log a New Trade
-              </button>
-            </div>
+        <main className="container mx-auto p-4 lg:p-6 space-y-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <CapitalManagement 
+              capital={capital} 
+              setCapital={handleSetCapital}
+              onAddDeposit={handleAddDeposit}
+            />
+            <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
+            <BestPractices />
+            <PersonalNotes 
+              note={note}
+              onNoteChange={handleNoteChange}
+            />
+            <button
+              onClick={() => setLogTradeModalOpen(true)}
+              className="w-full bg-primary hover:brightness-95 text-gray-900 font-bold py-3 px-4 rounded-md transition duration-300 text-sm xl:col-span-2"
+            >
+              Log a New Trade
+            </button>
+          </div>
 
-            {/* Right Column */}
-            <div className="lg:col-span-2 space-y-6 mt-6 lg:mt-0">
-              <PerformanceDashboard metrics={dashboardMetrics} onOpenAnalytics={() => setAnalyticsModalOpen(true)} />
-              <OpenPositions trades={openTrades} onEditTrade={handleStartEditTrade} onDeleteTrade={handleDeleteTrade} />
-            </div>
-
-            <div className="lg:col-span-3 mt-6 space-y-6">
-              <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} onEditTrade={handleStartEditTrade} />
-            </div>
+          <div className="space-y-6">
+            <OpenPositions trades={openTrades} onEditTrade={handleStartEditTrade} onDeleteTrade={handleDeleteTrade} />
+            <TradeLog trades={tradesWithPnl} onDeleteTrade={handleDeleteTrade} onEditTrade={handleStartEditTrade} />
           </div>
         </main>
       </div>
