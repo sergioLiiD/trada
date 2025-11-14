@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from './shared/Card';
 import { Trade, TradeStatus } from '../types';
 
@@ -24,6 +24,9 @@ const createDefaultTrade = (): Omit<Trade, 'id'> => {
     leverage: 1,
     riskPercent: 1,
     fees: 0,
+    feePercent: null,
+    stopLoss: null,
+    takeProfit: null,
     status: 'closed',
     closeDateTime: now,
     notes: ''
@@ -37,7 +40,12 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
   const [autoCalculated, setAutoCalculated] = useState({
     positionValue: 0,
     positionSize: 0,
-    riskAmount: 0,
+    riskAmountPercent: 0,
+    riskAmountActual: 0,
+    stopLossPercent: null as number | null,
+    takeProfitPercent: null as number | null,
+    plannedRr: null as number | null,
+    feeEstimate: null as number | null,
   });
 
   useEffect(() => {
@@ -51,6 +59,9 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
         fees: initialValues.status === 'closed'
           ? initialValues.fees ?? 0
           : null,
+        feePercent: initialValues.feePercent ?? null,
+        stopLoss: initialValues.stopLoss ?? null,
+        takeProfit: initialValues.takeProfit ?? null,
         closeDateTime: initialValues.status === 'closed'
           ? initialValues.closeDateTime ?? initialValues.dateTime
           : null,
@@ -63,9 +74,46 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
   useEffect(() => {
     const positionValue = trade.margin * trade.leverage;
     const positionSize = trade.entryPrice > 0 ? positionValue / trade.entryPrice : 0;
-    const riskAmount = positionValue * (trade.riskPercent / 100);
-    setAutoCalculated({ positionValue, positionSize, riskAmount });
-  }, [trade.margin, trade.leverage, trade.entryPrice, trade.riskPercent]);
+    const riskAmountPercent = positionValue * (trade.riskPercent / 100);
+    const directionMultiplier = trade.direction === 'Long' ? 1 : -1;
+
+    const stopLossDistanceRaw = trade.stopLoss != null && trade.entryPrice > 0
+      ? (trade.entryPrice - trade.stopLoss) * directionMultiplier
+      : null;
+    const hasValidStopLoss = stopLossDistanceRaw != null && stopLossDistanceRaw > 0;
+    const riskAmountActual = hasValidStopLoss ? stopLossDistanceRaw! * positionSize : riskAmountPercent;
+    const stopLossPercent = hasValidStopLoss && trade.entryPrice !== 0
+      ? (stopLossDistanceRaw! / trade.entryPrice) * 100
+      : null;
+
+    const takeProfitDistanceRaw = trade.takeProfit != null && trade.entryPrice > 0
+      ? (trade.takeProfit - trade.entryPrice) * directionMultiplier
+      : null;
+    const hasValidTakeProfit = takeProfitDistanceRaw != null && takeProfitDistanceRaw > 0;
+    const takeProfitPercent = hasValidTakeProfit && trade.entryPrice !== 0
+      ? (takeProfitDistanceRaw! / trade.entryPrice) * 100
+      : null;
+
+    const plannedRr = hasValidStopLoss && hasValidTakeProfit && stopLossDistanceRaw !== 0
+      ? takeProfitDistanceRaw! / stopLossDistanceRaw!
+      : null;
+
+    const feeMultiplier = trade.status === 'closed' ? 2 : 1;
+    const feeEstimate = trade.feePercent != null
+      ? positionValue * (trade.feePercent / 100) * feeMultiplier
+      : null;
+
+    setAutoCalculated({
+      positionValue,
+      positionSize,
+      riskAmountPercent,
+      riskAmountActual,
+      stopLossPercent,
+      takeProfitPercent,
+      plannedRr,
+      feeEstimate,
+    });
+  }, [trade.margin, trade.leverage, trade.entryPrice, trade.riskPercent, trade.direction, trade.stopLoss, trade.takeProfit, trade.feePercent, trade.status]);
 
   const handleStatusChange = (status: TradeStatus) => {
     setTrade(prev => ({
@@ -90,11 +138,16 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
       return;
     }
 
-    const numericFields = ['entryPrice', 'exitPrice', 'margin', 'leverage', 'riskPercent', 'fees'];
+    const numericFields = ['entryPrice', 'exitPrice', 'margin', 'leverage', 'riskPercent', 'fees', 'feePercent', 'stopLoss', 'takeProfit'];
+    const optionalNumericFields = ['exitPrice', 'fees', 'feePercent', 'stopLoss', 'takeProfit'];
     const isNumber = numericFields.includes(name);
     setTrade(prev => ({
       ...prev,
-      [name]: isNumber ? (isNaN(parseFloat(value)) ? 0 : parseFloat(value)) : value
+      [name]: isNumber
+        ? (value === ''
+            ? (optionalNumericFields.includes(name) ? null : 0)
+            : (isNaN(parseFloat(value)) ? 0 : parseFloat(value)))
+        : value
     }));
   };
 
@@ -192,6 +245,41 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="stopLoss" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Stop Loss</label>
+            <input
+              type="number"
+              step={DECIMAL_STEP}
+              name="stopLoss"
+              id="stopLoss"
+              value={trade.stopLoss ?? ''}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Opcional"
+            />
+            {autoCalculated.stopLossPercent != null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Distancia: {autoCalculated.stopLossPercent.toFixed(2)}%</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="takeProfit" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Take Profit</label>
+            <input
+              type="number"
+              step={DECIMAL_STEP}
+              name="takeProfit"
+              id="takeProfit"
+              value={trade.takeProfit ?? ''}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Opcional"
+            />
+            {autoCalculated.takeProfitPercent != null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Distancia: {autoCalculated.takeProfitPercent.toFixed(2)}%</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <label htmlFor="margin" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Margin ($)</label>
                 <input
@@ -233,6 +321,25 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
                  />
              </div>
            )}
+        </div>
+
+        <div>
+          <label htmlFor="feePercent" className="block text-sm font-medium text-gray-600 dark:text-gray-400">Fee % (por lado)</label>
+          <input
+            type="number"
+            step="any"
+            name="feePercent"
+            id="feePercent"
+            value={trade.feePercent ?? ''}
+            onChange={handleChange}
+            className="input-field"
+            placeholder="Opcional, ej. 0.05"
+          />
+          {autoCalculated.feeEstimate != null && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Estimado total {trade.status === 'closed' ? '(entrada + salida)' : '(solo entrada)'}: ${autoCalculated.feeEstimate.toFixed(2)}
+            </p>
+          )}
         </div>
 
         {trade.status === 'closed' && (
@@ -283,7 +390,11 @@ const LogTradeForm: React.FC<LogTradeFormProps> = ({ onSubmit, initialValues, su
             <h3 className="font-bold text-gray-700 dark:text-gray-300">Auto-Calculated Values</h3>
             <div className="flex justify-between"><span>Position Value ($):</span> <span>{autoCalculated.positionValue.toFixed(2)}</span></div>
             <div className="flex justify-between"><span>Position Size (Asset):</span> <span>{autoCalculated.positionSize.toFixed(8)}</span></div>
-            <div className="flex justify-between"><span>Risk Amount ($):</span> <span>{autoCalculated.riskAmount.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>Risk Amount (basado en % , $):</span> <span>{autoCalculated.riskAmountPercent.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span>Risk Amount (basado en SL, $):</span> <span>{autoCalculated.riskAmountActual.toFixed(2)}</span></div>
+            {autoCalculated.plannedRr != null && (
+              <div className="flex justify-between"><span>R:R planeado (auto):</span> <span>{autoCalculated.plannedRr.toFixed(2)} : 1</span></div>
+            )}
         </div>
 
         <div className="flex space-x-2">

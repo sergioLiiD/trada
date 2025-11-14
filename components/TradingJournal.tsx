@@ -61,8 +61,19 @@ const TradingJournal: React.FC<TradingJournalProps> = ({ user, logout, theme, to
     return closedTrades
       .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
       .map(trade => {
+        const capitalStart = runningCapital;
         const pnlData = calculateTradePnl(trade);
-        const tradeWithPnl: TradeWithPnl = { ...trade, ...pnlData, status: 'closed', exitPrice: trade.exitPrice ?? trade.entryPrice, fees: trade.fees ?? 0 };
+        const effectiveRiskAmount = pnlData.riskAmountActual ?? pnlData.riskAmount;
+        const accountRiskPercent = capitalStart > 0 ? (effectiveRiskAmount / capitalStart) * 100 : null;
+        const tradeWithPnl: TradeWithPnl = {
+          ...trade,
+          ...pnlData,
+          status: 'closed',
+          exitPrice: trade.exitPrice ?? trade.entryPrice,
+          fees: trade.fees ?? 0,
+          capitalStart,
+          accountRiskPercent,
+        };
         runningCapital += tradeWithPnl.pnlNet;
         return { ...tradeWithPnl, capitalEnd: runningCapital };
       });

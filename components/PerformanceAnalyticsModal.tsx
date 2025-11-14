@@ -14,6 +14,8 @@ const PerformanceAnalyticsModal: React.FC<PerformanceAnalyticsModalProps> = ({ o
   const equityCurveRef = useRef<HTMLCanvasElement>(null);
   const pnlDistributionRef = useRef<HTMLCanvasElement>(null);
   const strategyPnlRef = useRef<HTMLCanvasElement>(null);
+  const rrComparisonRef = useRef<HTMLCanvasElement>(null);
+  const roiDistributionRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const charts: Chart[] = [];
@@ -121,6 +123,86 @@ const PerformanceAnalyticsModal: React.FC<PerformanceAnalyticsModalProps> = ({ o
         }
     }
 
+    // 4. Realized vs Planned R:R
+    if (rrComparisonRef.current) {
+        const ctx = rrComparisonRef.current.getContext('2d');
+        if (ctx) {
+            const rrChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: trades.map((_, i) => `Trade ${i + 1}`),
+                    datasets: [
+                        {
+                            label: 'R:R Realizado',
+                            data: trades.map(t => t.rrRealized ?? null),
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                        },
+                        {
+                            label: 'R:R Planeado',
+                            data: trades.map(t => t.rrPlanned ?? null),
+                            backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'R:R Realizado vs Planeado' },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => `${value}:1`,
+                            },
+                        },
+                    },
+                },
+            });
+            charts.push(rrChart);
+        }
+    }
+
+    // 5. ROI Distribution
+    if (roiDistributionRef.current) {
+        const ctx = roiDistributionRef.current.getContext('2d');
+        if (ctx) {
+            const roiChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: trades.map((_, i) => `Trade ${i + 1}`),
+                    datasets: [{
+                        label: 'ROI (%)',
+                        data: trades.map(t => t.roiPercent ?? null),
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        tension: 0.2,
+                        fill: false,
+                        spanGaps: true,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'ROI por Trade' },
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: (value) => `${value}%`,
+                            },
+                        },
+                    },
+                },
+            });
+            charts.push(roiChart);
+        }
+    }
+
     return () => {
       charts.forEach(chart => chart.destroy());
     };
@@ -148,6 +230,12 @@ const PerformanceAnalyticsModal: React.FC<PerformanceAnalyticsModalProps> = ({ o
               </div>
               <div>
                 <canvas ref={strategyPnlRef}></canvas>
+              </div>
+              <div>
+                <canvas ref={rrComparisonRef}></canvas>
+              </div>
+              <div>
+                <canvas ref={roiDistributionRef}></canvas>
               </div>
             </div>
           )}
